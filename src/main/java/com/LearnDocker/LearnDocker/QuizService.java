@@ -10,7 +10,7 @@ public class QuizService {
         this.quizRepository = quizRepository;
     }
 
-    public String getQuizById(int quizId) {
+    public String getQuizById(long quizId) {
         return this.quizRepository.findById(quizId).toString();
     }
 }

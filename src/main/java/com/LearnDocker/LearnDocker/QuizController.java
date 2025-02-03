@@ -15,7 +15,7 @@ public class QuizController {
     }
     
     @GetMapping(value="/{quizId}")
-    public String getQuizById(@PathVariable(value="quizId") int quizId) {
+    public String getQuizById(@PathVariable(value="quizId") long quizId) {
         return this.quizService.getQuizById(quizId);
     }
 }

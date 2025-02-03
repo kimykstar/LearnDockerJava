@@ -1,11 +1,7 @@
 package com.LearnDocker.LearnDocker;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 
 @Entity
@@ -14,8 +10,9 @@ import lombok.Setter;
 @Setter
 public class Quiz {
     @Id
-    private int id;
-    @NonNull
-    @Column(name="content")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name="content", nullable=false)
     private String content;
 }
