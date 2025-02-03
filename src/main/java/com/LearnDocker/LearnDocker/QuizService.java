@@ -11,7 +11,6 @@ public class QuizService {
     }
 
     public String getQuizById(int quizId) {
-//        return this.quizRepository.getQuizById(quizId);
-        return "HHHH";
+        return this.quizRepository.findById(quizId).toString();
     }
 }
