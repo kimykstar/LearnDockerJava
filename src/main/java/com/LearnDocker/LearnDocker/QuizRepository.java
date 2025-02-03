@@ -1,4 +1,6 @@
 package com.LearnDocker.LearnDocker;
 
-public interface QuizRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 }
