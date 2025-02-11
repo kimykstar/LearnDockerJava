@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.custom-terminal {
+    scrollbar-width: thin;
+    scrollbar-color: #666 #1e1e1e;
+}

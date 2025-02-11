@@ -1,4 +1,5 @@
-CREATE TABLE IF NOT EXISTS quiz (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    content TEXT NOT NULL
+DROP TABLE IF EXISTS quiz;
+CREATE TABLE quiz (
+                      id INT AUTO_INCREMENT PRIMARY KEY,
+                      content TEXT NOT NULL
 );
