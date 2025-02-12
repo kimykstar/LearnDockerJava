@@ -1,6 +1,7 @@
 package com.LearnDocker.LearnDocker;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -34,6 +35,18 @@ public class SandboxService {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .retrieve()
-                .bodyToMono(String.class);
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>(){})
+                .map(response -> (String) response.get("Id"));
+    }
+
+    public void startUserContainer(String containerId) {
+        System.out.println(containerId);
+    }
+
+    public void assignUserContainer() {
+        Mono<String> result = createUserContainer();
+        // ContainerID추출
+        String containerId = result.block();
+        startUserContainer(containerId);
     }
 }

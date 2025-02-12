@@ -16,7 +16,8 @@ public class SandboxController {
 
     @PostMapping(value="start")
     public void userContainerStart() {
-        Mono<String> response = this.sandboxService.createUserContainer();
+        this.sandboxService.assignUserContainer();
+
     }
 
 }
