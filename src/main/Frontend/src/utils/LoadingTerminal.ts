@@ -5,8 +5,8 @@ export default class LoadingTerminal {
     private spinnerFrames: string[];
     private hostSpinnerFrames: string[];
     private currentFrame: number;
-    private loadingInterval: number;
-    private loadingTimeout: number;
+    private loadingInterval: any;
+    private loadingTimeout: any;
 
     constructor(term: Terminal) {
         this.term = term;
@@ -29,8 +29,6 @@ export default class LoadingTerminal {
             '  ∘°◦         🐳',
         ];
         this.currentFrame = 0;
-        this.loadingInterval = 0;
-        this.loadingTimeout = 0;
     }
 
     public spinnerStart(timeDelay: number = 1500) {
