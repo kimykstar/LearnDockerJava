@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 @RequestMapping(value="sandbox")
 public class SandboxController {
 
-    private SandboxService sandboxService;
+    private final SandboxService sandboxService;
     public SandboxController(SandboxService sandboxService) {
         this.sandboxService = sandboxService;
     }
@@ -17,7 +17,5 @@ public class SandboxController {
     @PostMapping(value="start")
     public void userContainerStart() {
         this.sandboxService.assignUserContainer();
-
     }
-
 }
