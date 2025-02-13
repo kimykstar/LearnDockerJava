@@ -40,13 +40,17 @@ public class SandboxService {
     }
 
     public void startUserContainer(String containerId) {
-        System.out.println(containerId);
+        // Start Container
+        this.webClient.build()
+            .post()
+            .uri("/containers/" + containerId + "/start")
+            .contentType(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .bodyToMono(String.class).subscribe(result -> System.out.println(result));
     }
 
     public void assignUserContainer() {
-        Mono<String> result = createUserContainer();
-        // ContainerID추출
-        String containerId = result.block();
+        String containerId = createUserContainer().block();
         startUserContainer(containerId);
     }
 }
