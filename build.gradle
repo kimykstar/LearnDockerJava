@@ -27,6 +27,7 @@ dependencies {
 	implementation 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	// Session Redis라이브러리
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation "org.springframework.session:spring-session-data-redis"
 	// lombok test 라이브러리
 	testImplementation 'org.projectlombok:lombok'
