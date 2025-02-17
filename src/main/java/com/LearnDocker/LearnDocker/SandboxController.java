@@ -15,7 +15,6 @@ public class SandboxController {
         this.sandboxService = sandboxService;
     }
 
-    @ResponseBody
     @PostMapping(value="start")
     public ResponseEntity<Map<String, Long>> userContainerStart(final HttpServletRequest httpRequest) {
         this.sandboxService.assignUserContainer();
