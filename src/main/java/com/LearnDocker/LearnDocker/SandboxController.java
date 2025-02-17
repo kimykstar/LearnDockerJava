@@ -2,14 +2,12 @@ package com.LearnDocker.LearnDocker;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
-@RequestMapping(value="sandbox")
+@RequestMapping(value="api/sandbox")
 public class SandboxController {
 
     private final SandboxService sandboxService;
@@ -17,12 +15,15 @@ public class SandboxController {
         this.sandboxService = sandboxService;
     }
 
+    @ResponseBody
     @PostMapping(value="start")
-    public void userContainerStart(final HttpServletRequest httpRequest) {
+    public ResponseEntity<Map<String, Long>> userContainerStart(final HttpServletRequest httpRequest) {
         this.sandboxService.assignUserContainer();
         final HttpSession session = httpRequest.getSession();
-        if (session.getAttribute("Session") == null) {
-            session.setAttribute("Session", "hello");
-        }
+        long creationTime = session.getCreationTime();
+        long expirationTime = session.getMaxInactiveInterval() * 1000L;
+        long maxAge = creationTime + expirationTime;
+
+        return ResponseEntity.ok(Map.of("endDate", maxAge));
     }
 }
