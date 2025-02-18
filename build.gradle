@@ -29,6 +29,10 @@ dependencies {
 	// Session Redis라이브러리
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation "org.springframework.session:spring-session-data-redis"
+	// Security Framework
+	implementation "org.springframework.boot:spring-boot-starter-security"
+	implementation "org.springframework.security:spring-security-web"
+	implementation "org.springframework.security:spring-security-config"
 	// lombok test 라이브러리
 	testImplementation 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
