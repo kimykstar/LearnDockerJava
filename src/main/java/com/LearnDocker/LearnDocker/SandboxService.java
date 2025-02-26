@@ -42,15 +42,27 @@ public class SandboxService {
     public void startUserContainer(String containerId) {
         // Start Container
         this.webClient.build()
-            .post()
-            .uri("/containers/" + containerId + "/start")
-            .contentType(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .bodyToMono(String.class).subscribe(result -> System.out.println(result));
+                .post()
+                .uri("/containers/" + containerId + "/start")
+                .contentType(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .toBodilessEntity()
+                .block();
     }
 
-    public void assignUserContainer() {
+    public String assignUserContainer() {
         String containerId = createUserContainer().block();
         startUserContainer(containerId);
+
+        return containerId;
+    }
+
+    public void releaseUserSession(String containerId) {
+        this.webClient.build()
+                .delete()
+                .uri("containers/" + containerId + "?force=true&v=true")
+                .retrieve()
+                .toBodilessEntity()
+                .subscribe();
     }
 }
