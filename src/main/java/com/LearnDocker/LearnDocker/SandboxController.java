@@ -25,6 +25,7 @@ public class SandboxController {
         long maxAge = creationTime + expirationTime;
 
         session.setAttribute("containerId", containerId);
+        session.setAttribute("level", 0);
 
         return ResponseEntity.ok(Map.of("endDate", maxAge));
     }
