@@ -1,4 +1,4 @@
-package com.LearnDocker.LearnDocker;
+package com.LearnDocker.LearnDocker.Configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.context.annotation.Bean;
