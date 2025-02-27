@@ -1,7 +1,12 @@
 package com.LearnDocker.LearnDocker;
 
+import com.LearnDocker.LearnDocker.DTO.ContainerInfo;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -12,11 +17,15 @@ import java.util.Map;
 
 @Service
 public class SandboxService {
-    private final WebClient.Builder webClient;
+    private static final String READY = "READY";
+    private static final String STARTING = "STARTING";
+    private final WebClient.Builder dockerWebClient;
+    private final WebClient.Builder containerWebClient;
 
     @Autowired
-    public SandboxService(WebClient beanWebClient) {
-        this.webClient = beanWebClient.mutate();
+    public SandboxService(@Qualifier("DockerWebClient") WebClient dockerWebClient, @Qualifier("ContainerWebClient") WebClient containerWebClient) {
+        this.dockerWebClient = dockerWebClient.mutate();
+        this.containerWebClient = containerWebClient.mutate();
     }
 
     public Mono<String> createUserContainer() {
@@ -29,7 +38,7 @@ public class SandboxService {
                 List.of("DOCKER_TLS_CERTDIR="),
                 List.of("--tls=false")
         );
-        return this.webClient.build()
+        return this.dockerWebClient.build()
                 .post()
                 .uri("/containers/create")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -41,7 +50,7 @@ public class SandboxService {
 
     public void startUserContainer(String containerId) {
         // Start Container
-        this.webClient.build()
+        this.dockerWebClient.build()
                 .post()
                 .uri("/containers/" + containerId + "/start")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -50,19 +59,58 @@ public class SandboxService {
                 .block();
     }
 
-    public String assignUserContainer() {
+    public ContainerInfo assignUserContainer() {
         String containerId = createUserContainer().block();
         startUserContainer(containerId);
+        String containerData = getContainerPort(containerId);
+        ContainerInfo containerInfo = new ContainerInfo(containerId, containerData);
 
-        return containerId;
+        return containerInfo;
     }
 
     public void releaseUserSession(String containerId) {
-        this.webClient.build()
+        this.dockerWebClient.build()
                 .delete()
                 .uri("containers/" + containerId + "?force=true&v=true")
                 .retrieve()
                 .toBodilessEntity()
                 .subscribe();
+    }
+
+    public String getContainerPort(String containerId) {
+        String data = this.dockerWebClient.build()
+                .get()
+                .uri("containers/" + containerId + "/json")
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<String>(){})
+                .block();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String containerPort;
+        try {
+            JsonNode json = objectMapper.readTree(data);
+            containerPort = json.get("NetworkSettings").get("Ports").get("2375/tcp").get(0).get("HostPort").asText();
+            return containerPort;
+        } catch (Exception e) {
+            // Todo: 예외 잡기
+            System.out.println("JSON 참조 틀림");
+        }
+        // Todo: 이렇게 예외 처리 밖에 하는게 맞나?
+        return data;
+    }
+
+    public String getHostStatus(int containerPort) {
+        // Todo: 상태 코드 예외 잡기
+        this.containerWebClient.build()
+                .get()
+                .uri(containerPort + "/_ping")
+                .retrieve()
+                .onStatus(HttpStatus.INTERNAL_SERVER_ERROR::equals, clientResponse -> Mono.just(new Exception()))
+                .bodyToMono(String.class)
+                .onErrorResume(e -> {
+                    return Mono.just(STARTING);
+                }).block();
+
+        return READY;
     }
 }
