@@ -12,6 +12,6 @@ public class AppConfig {
     }
     @Bean(name="ContainerWebClient")
     public WebClient getContainerWebClient() {
-        return WebClient.create("http://localhost:");
+        return WebClient.create("http://localhost");
     }
 }
