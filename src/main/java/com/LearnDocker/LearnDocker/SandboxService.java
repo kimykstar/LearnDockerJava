@@ -1,6 +1,7 @@
 package com.LearnDocker.LearnDocker;
 
 import com.LearnDocker.LearnDocker.DTO.ContainerInfo;
+import com.LearnDocker.LearnDocker.DTO.Elements;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -103,7 +105,7 @@ public class SandboxService {
         // Todo: 상태 코드 예외 잡기
         this.containerWebClient.build()
                 .get()
-                .uri(containerPort + "/_ping")
+                .uri(uriBuilder -> uriBuilder.port(containerPort).path("/_ping").build())
                 .retrieve()
                 .onStatus(HttpStatus.INTERNAL_SERVER_ERROR::equals, clientResponse -> Mono.just(new Exception()))
                 .bodyToMono(String.class)
@@ -113,4 +115,66 @@ public class SandboxService {
 
         return READY;
     }
+
+    public Elements getUserContainersImages(int containerPort) {
+        String responseImages = this.containerWebClient.build()
+                .get()
+                .uri(uriBuilder -> uriBuilder.port(containerPort).path("/images/json").build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+        Elements.Image[] images = parseImages(responseImages);
+
+        String responseContainers = this.containerWebClient.build()
+                .get()
+                .uri(uriBuilder -> uriBuilder
+                        .port(containerPort)
+                        .path("/containers/json")
+                        .queryParam("all", "true").build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+        Elements.Container[] containers = parseContainers(responseContainers);
+        
+        return new Elements(images, containers);
+    }
+
+    // Todo: 아래 파싱 함수들 리팩토링 하기
+    public Elements.Image[] parseImages(String responseImages) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            JsonNode rootArray = objectMapper.readTree(responseImages);
+            List<Elements.Image> imageList = new ArrayList<>();
+            for (JsonNode imageNode : rootArray) {
+                String id = imageNode.get("Id").asText();
+                String name = imageNode.get("RepoTags").get(0).asText().split(":")[0];
+                imageList.add(new Elements.Image(id, name));
+            }
+            return imageList.toArray(new Elements.Image[0]);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    public Elements.Container[] parseContainers(String responseContainers) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            JsonNode rootArray = objectMapper.readTree(responseContainers);
+            List<Elements.Container> containerList = new ArrayList<>();
+            for (JsonNode containerNode : rootArray) {
+                String id = containerNode.get("Id").asText();
+                String name = containerNode.get("Names").get(0).asText().split("/")[1];
+                String image = containerNode.get("Image").asText();
+                String status = containerNode.get("State").asText();
+                containerList.add(new Elements.Container(id, name, image, status));
+            }
+            return containerList.toArray(new Elements.Container[0]);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
 }
