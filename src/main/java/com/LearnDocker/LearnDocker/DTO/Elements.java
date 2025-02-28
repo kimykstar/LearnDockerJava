@@ -1,7 +1,11 @@
 package com.LearnDocker.LearnDocker.DTO;
 
+import lombok.Getter;
+
 public class Elements {
+    @Getter
     private Image[] images;
+    @Getter
     private Container[] containers;
 
     public Elements(Image[] images, Container[] containers) {
@@ -10,7 +14,9 @@ public class Elements {
     }
 
     public static class Image {
+        @Getter
         private String id;
+        @Getter
         private String name;
 
         public Image(String id, String name) {
@@ -20,9 +26,13 @@ public class Elements {
     }
 
     public static class Container {
+        @Getter
         private String id;
+        @Getter
         private String name;
+        @Getter
         private String status;
+        @Getter
         private String image;
 
         public Container(String id, String name, String status, String image) {
