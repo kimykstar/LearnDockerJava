@@ -6,8 +6,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 public class AppConfig {
-    @Bean
+    @Bean(name="DockerWebClient")
     public WebClient getWebClient() {
         return WebClient.create("http://localhost:2375");
+    }
+    @Bean(name="ContainerWebClient")
+    public WebClient getContainerWebClient() {
+        return WebClient.create("http://localhost");
     }
 }

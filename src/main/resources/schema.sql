@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS quiz;
 CREATE TABLE quiz (
-                      id INT AUTO_INCREMENT PRIMARY KEY,
-                      content TEXT NOT NULL
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(30),
+    content TEXT NOT NULL
 );
