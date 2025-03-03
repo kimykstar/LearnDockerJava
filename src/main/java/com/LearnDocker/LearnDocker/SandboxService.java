@@ -30,6 +30,16 @@ public class SandboxService {
         this.containerWebClient = containerWebClient.mutate();
     }
 
+    public Mono<ContainerInfo> assignUserContainer() {
+        return createUserContainer()
+                .flatMap(containerId ->
+                        startUserContainer(containerId)
+                                .then(getContainerPort(containerId)
+                                        .map(containerPort -> new ContainerInfo(containerId, containerPort)))
+                );
+    }
+
+
     public Mono<String> createUserContainer() {
         CreateContainerBody body = new CreateContainerBody(
                 "dind",
@@ -50,24 +60,36 @@ public class SandboxService {
                 .map(response -> (String) response.get("Id"));
     }
 
-    public void startUserContainer(String containerId) {
+    public Mono<Void> startUserContainer(String containerId) {
         // Start Container
-        this.dockerWebClient.build()
+        return this.dockerWebClient.build()
                 .post()
                 .uri("/containers/" + containerId + "/start")
                 .contentType(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .toBodilessEntity()
-                .block();
+                .then();
     }
 
-    public ContainerInfo assignUserContainer() {
-        String containerId = createUserContainer().block();
-        startUserContainer(containerId);
-        String containerData = getContainerPort(containerId);
-        ContainerInfo containerInfo = new ContainerInfo(containerId, containerData);
-
-        return containerInfo;
+    public Mono<String> getContainerPort(String containerId) {
+        return this.dockerWebClient.build()
+                .get()
+                .uri("containers/" + containerId + "/json")
+                .retrieve()
+                .bodyToMono(String.class)
+                .flatMap(data -> {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    String containerPort;
+                    try {
+                        JsonNode json = objectMapper.readTree(data);
+                        containerPort = json.get("NetworkSettings").get("Ports").get("2375/tcp").get(0).get("HostPort").asText();
+                        return Mono.just(containerPort);
+                    } catch (Exception e) {
+                        // Todo: 예외 잡기
+                        System.out.println("JSON 참조 틀림");
+                    }
+                    return Mono.just("");
+                });
     }
 
     public void releaseUserSession(String containerId) {
@@ -77,28 +99,6 @@ public class SandboxService {
                 .retrieve()
                 .toBodilessEntity()
                 .subscribe();
-    }
-
-    public String getContainerPort(String containerId) {
-        String data = this.dockerWebClient.build()
-                .get()
-                .uri("containers/" + containerId + "/json")
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<String>(){})
-                .block();
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        String containerPort;
-        try {
-            JsonNode json = objectMapper.readTree(data);
-            containerPort = json.get("NetworkSettings").get("Ports").get("2375/tcp").get(0).get("HostPort").asText();
-            return containerPort;
-        } catch (Exception e) {
-            // Todo: 예외 잡기
-            System.out.println("JSON 참조 틀림");
-        }
-        // Todo: 이렇게 예외 처리 밖에 하는게 맞나?
-        return data;
     }
 
     public String getHostStatus(int containerPort) {
@@ -139,7 +139,7 @@ public class SandboxService {
         return new Elements(images, containers);
     }
 
-    // Todo: 아래 파싱 함수들 리팩토링 하기
+    // Todo: 아래 파싱 함수들 리팩토링 하기, 예외 처리
     public Elements.Image[] parseImages(String responseImages) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {

@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -19,18 +21,20 @@ public class SandboxController {
     }
 
     @PostMapping(value="start")
-    public ResponseEntity<Map<String, Long>> userContainerStart(final HttpServletRequest httpRequest) {
+    public Mono<ResponseEntity<Map<String, Long>>> userContainerStart(final HttpServletRequest httpRequest) {
         final HttpSession session = httpRequest.getSession();
-        ContainerInfo containerInfo = this.sandboxService.assignUserContainer();
-        long creationTime = session.getCreationTime();
-        long expirationTime = session.getMaxInactiveInterval() * 1000L;
-        long maxAge = creationTime + expirationTime;
+        final long creationTime = session.getCreationTime();
+        final long expirationTime = session.getMaxInactiveInterval() * 1000L;
+        final long maxAge = creationTime + expirationTime;
 
-        session.setAttribute("containerId", containerInfo.getContainerId());
-        session.setAttribute("containerPort", containerInfo.getContainerPort());
-        session.setAttribute("level", 0);
+        return this.sandboxService.assignUserContainer()
+                .map(containerInfo -> {
+                    session.setAttribute("containerId", containerInfo.getContainerId());
+                    session.setAttribute("containerPort", containerInfo.getContainerPort());
+                    session.setAttribute("level", 0);
 
-        return ResponseEntity.ok(Map.of("endDate", maxAge));
+                    return ResponseEntity.ok(Map.of("endDate", maxAge));
+                });
     }
 
     @DeleteMapping(value="release")
