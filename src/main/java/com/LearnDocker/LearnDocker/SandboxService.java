@@ -92,13 +92,13 @@ public class SandboxService {
                 });
     }
 
-    public void releaseUserSession(String containerId) {
-        this.dockerWebClient.build()
+    public Mono<Void> releaseUserSession(String containerId) {
+        return this.dockerWebClient.build()
                 .delete()
                 .uri("containers/" + containerId + "?force=true&v=true")
                 .retrieve()
                 .toBodilessEntity()
-                .subscribe();
+                .then();
     }
 
     public String getHostStatus(int containerPort) {

@@ -40,9 +40,10 @@ public class SandboxController {
     @DeleteMapping(value="release")
     public void releaseUserSession(final HttpServletRequest httpRequest) {
         final HttpSession session = httpRequest.getSession();
-        // 이렇게 Object객체를 String으로 강제 형변환 하는게 좋은 방법인지 알아보기
-        this.sandboxService.releaseUserSession(Objects.toString(session.getAttribute("containerId"), null));
-        session.invalidate();
+        Mono.justOrEmpty(session.getAttribute("containerId"))
+                .map(Objects::toString)
+                .flatMap(this.sandboxService::releaseUserSession)
+                .then(Mono.fromRunnable(session::invalidate));
     }
 
     @GetMapping(value="hostStatus")
