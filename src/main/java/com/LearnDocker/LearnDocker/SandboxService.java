@@ -23,11 +23,13 @@ public class SandboxService {
     private static final String STARTING = "STARTING";
     private final WebClient.Builder dockerWebClient;
     private final WebClient.Builder containerWebClient;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public SandboxService(@Qualifier("DockerWebClient") WebClient dockerWebClient, @Qualifier("ContainerWebClient") WebClient containerWebClient) {
+    public SandboxService(@Qualifier("DockerWebClient") WebClient dockerWebClient, @Qualifier("ContainerWebClient") WebClient containerWebClient, ObjectMapper objectMapper) {
         this.dockerWebClient = dockerWebClient.mutate();
         this.containerWebClient = containerWebClient.mutate();
+        this.objectMapper = objectMapper;
     }
 
     public Mono<ContainerInfo> assignUserContainer() {
@@ -78,10 +80,9 @@ public class SandboxService {
                 .retrieve()
                 .bodyToMono(String.class)
                 .flatMap(data -> {
-                    ObjectMapper objectMapper = new ObjectMapper();
                     String containerPort;
                     try {
-                        JsonNode json = objectMapper.readTree(data);
+                        JsonNode json = this.objectMapper.readTree(data);
                         containerPort = json.get("NetworkSettings").get("Ports").get("2375/tcp").get(0).get("HostPort").asText();
                         return Mono.just(containerPort);
                     } catch (Exception e) {
@@ -136,9 +137,8 @@ public class SandboxService {
 
     // Todo: 아래 파싱 함수들 리팩토링 하기, 예외 처리
     public Elements.Image[] parseImages(String responseImages) {
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            JsonNode rootArray = objectMapper.readTree(responseImages);
+            JsonNode rootArray = this.objectMapper.readTree(responseImages);
             List<Elements.Image> imageList = new ArrayList<>();
             for (JsonNode imageNode : rootArray) {
                 String id = imageNode.get("Id").asText();
@@ -153,9 +153,8 @@ public class SandboxService {
     }
     
     public Elements.Container[] parseContainers(String responseContainers) {
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            JsonNode rootArray = objectMapper.readTree(responseContainers);
+            JsonNode rootArray = this.objectMapper.readTree(responseContainers);
             List<Elements.Container> containerList = new ArrayList<>();
             for (JsonNode containerNode : rootArray) {
                 String id = containerNode.get("Id").asText();
