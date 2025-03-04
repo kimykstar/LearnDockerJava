@@ -23,12 +23,24 @@ public class SandboxService {
     private static final String STARTING = "STARTING";
     private final WebClient.Builder dockerWebClient;
     private final WebClient.Builder containerWebClient;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public SandboxService(@Qualifier("DockerWebClient") WebClient dockerWebClient, @Qualifier("ContainerWebClient") WebClient containerWebClient) {
+    public SandboxService(@Qualifier("DockerWebClient") WebClient dockerWebClient, @Qualifier("ContainerWebClient") WebClient containerWebClient, ObjectMapper objectMapper) {
         this.dockerWebClient = dockerWebClient.mutate();
         this.containerWebClient = containerWebClient.mutate();
+        this.objectMapper = objectMapper;
     }
+
+    public Mono<ContainerInfo> assignUserContainer() {
+        return createUserContainer()
+                .flatMap(containerId ->
+                        startUserContainer(containerId)
+                                .then(getContainerPort(containerId)
+                                        .map(containerPort -> new ContainerInfo(containerId, containerPort)))
+                );
+    }
+
 
     public Mono<String> createUserContainer() {
         CreateContainerBody body = new CreateContainerBody(
@@ -42,7 +54,7 @@ public class SandboxService {
         );
         return this.dockerWebClient.build()
                 .post()
-                .uri("/containers/create")
+                .uri(uriBuilder -> uriBuilder.path("/containers/create").build())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .retrieve()
@@ -50,100 +62,83 @@ public class SandboxService {
                 .map(response -> (String) response.get("Id"));
     }
 
-    public void startUserContainer(String containerId) {
+    public Mono<Void> startUserContainer(String containerId) {
         // Start Container
-        this.dockerWebClient.build()
+        return this.dockerWebClient.build()
                 .post()
-                .uri("/containers/" + containerId + "/start")
+                .uri(uriBuilder -> uriBuilder.path("/containers/{containerId}/start").build(containerId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .toBodilessEntity()
-                .block();
+                .then();
     }
 
-    public ContainerInfo assignUserContainer() {
-        String containerId = createUserContainer().block();
-        startUserContainer(containerId);
-        String containerData = getContainerPort(containerId);
-        ContainerInfo containerInfo = new ContainerInfo(containerId, containerData);
-
-        return containerInfo;
+    public Mono<String> getContainerPort(String containerId) {
+        return this.dockerWebClient.build()
+                .get()
+                .uri(uriBuilder -> uriBuilder.path("containers/{containerId}/json").build(containerId))
+                .retrieve()
+                .bodyToMono(String.class)
+                .flatMap(data -> {
+                    String containerPort;
+                    try {
+                        JsonNode json = this.objectMapper.readTree(data);
+                        containerPort = json.get("NetworkSettings").get("Ports").get("2375/tcp").get(0).get("HostPort").asText();
+                        return Mono.just(containerPort);
+                    } catch (Exception e) {
+                        // Todo: 예외 잡기
+                        System.out.println("JSON 참조 틀림");
+                    }
+                    return Mono.just("");
+                });
     }
 
-    public void releaseUserSession(String containerId) {
-        this.dockerWebClient.build()
+    public Mono<Void> releaseUserSession(String containerId) {
+        return this.dockerWebClient.build()
                 .delete()
-                .uri("containers/" + containerId + "?force=true&v=true")
+                .uri(uriBuilder -> uriBuilder.path("containers/{containerId}").queryParam("force", "true").queryParam("v", "true").build(containerId))
                 .retrieve()
                 .toBodilessEntity()
-                .subscribe();
+                .then();
     }
 
-    public String getContainerPort(String containerId) {
-        String data = this.dockerWebClient.build()
-                .get()
-                .uri("containers/" + containerId + "/json")
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<String>(){})
-                .block();
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        String containerPort;
-        try {
-            JsonNode json = objectMapper.readTree(data);
-            containerPort = json.get("NetworkSettings").get("Ports").get("2375/tcp").get(0).get("HostPort").asText();
-            return containerPort;
-        } catch (Exception e) {
-            // Todo: 예외 잡기
-            System.out.println("JSON 참조 틀림");
-        }
-        // Todo: 이렇게 예외 처리 밖에 하는게 맞나?
-        return data;
-    }
-
-    public String getHostStatus(int containerPort) {
-        // Todo: 상태 코드 예외 잡기
-        this.containerWebClient.build()
+    public Mono<String> getHostStatus(int containerPort) {
+        return this.containerWebClient.build()
                 .get()
                 .uri(uriBuilder -> uriBuilder.port(containerPort).path("/_ping").build())
                 .retrieve()
                 .onStatus(HttpStatus.INTERNAL_SERVER_ERROR::equals, clientResponse -> Mono.just(new Exception()))
                 .bodyToMono(String.class)
-                .onErrorResume(e -> {
-                    return Mono.just(STARTING);
-                }).block();
-
-        return READY;
+                .map(response -> READY)
+                .onErrorResume(e -> Mono.just(STARTING));
     }
 
-    public Elements getUserContainersImages(int containerPort) {
-        String responseImages = this.containerWebClient.build()
+    public Mono<Elements> getUserContainersImages(int containerPort) {
+        Mono<Elements.Image[]> imagesMono = this.containerWebClient.build()
                 .get()
                 .uri(uriBuilder -> uriBuilder.port(containerPort).path("/images/json").build())
                 .retrieve()
                 .bodyToMono(String.class)
-                .block();
-        Elements.Image[] images = parseImages(responseImages);
+                .map(this::parseImages);
 
-        String responseContainers = this.containerWebClient.build()
+        Mono<Elements.Container[]> containersMono = this.containerWebClient.build()
                 .get()
                 .uri(uriBuilder -> uriBuilder
                         .port(containerPort)
                         .path("/containers/json")
-                        .queryParam("all", "true").build())
+                        .queryParam("all", "true")
+                        .build())
                 .retrieve()
                 .bodyToMono(String.class)
-                .block();
-        Elements.Container[] containers = parseContainers(responseContainers);
-        
-        return new Elements(images, containers);
+                .map(this::parseContainers);
+
+        return Mono.zip(imagesMono, containersMono, Elements::new);
     }
 
-    // Todo: 아래 파싱 함수들 리팩토링 하기
+    // Todo: 아래 파싱 함수들 리팩토링 하기, 예외 처리
     public Elements.Image[] parseImages(String responseImages) {
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            JsonNode rootArray = objectMapper.readTree(responseImages);
+            JsonNode rootArray = this.objectMapper.readTree(responseImages);
             List<Elements.Image> imageList = new ArrayList<>();
             for (JsonNode imageNode : rootArray) {
                 String id = imageNode.get("Id").asText();
@@ -158,9 +153,8 @@ public class SandboxService {
     }
     
     public Elements.Container[] parseContainers(String responseContainers) {
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            JsonNode rootArray = objectMapper.readTree(responseContainers);
+            JsonNode rootArray = this.objectMapper.readTree(responseContainers);
             List<Elements.Container> containerList = new ArrayList<>();
             for (JsonNode containerNode : rootArray) {
                 String id = containerNode.get("Id").asText();

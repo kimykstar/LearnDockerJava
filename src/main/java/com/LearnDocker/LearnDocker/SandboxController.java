@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -19,41 +21,49 @@ public class SandboxController {
     }
 
     @PostMapping(value="start")
-    public ResponseEntity<Map<String, Long>> userContainerStart(final HttpServletRequest httpRequest) {
+    public Mono<ResponseEntity<Map<String, Long>>> userContainerStart(final HttpServletRequest httpRequest) {
         final HttpSession session = httpRequest.getSession();
-        ContainerInfo containerInfo = this.sandboxService.assignUserContainer();
-        long creationTime = session.getCreationTime();
-        long expirationTime = session.getMaxInactiveInterval() * 1000L;
-        long maxAge = creationTime + expirationTime;
+        final long creationTime = session.getCreationTime();
+        final long expirationTime = session.getMaxInactiveInterval() * 1000L;
+        final long maxAge = creationTime + expirationTime;
 
-        session.setAttribute("containerId", containerInfo.getContainerId());
-        session.setAttribute("containerPort", containerInfo.getContainerPort());
-        session.setAttribute("level", 0);
+        return this.sandboxService.assignUserContainer()
+                .map(containerInfo -> {
+                    session.setAttribute("containerId", containerInfo.getContainerId());
+                    session.setAttribute("containerPort", containerInfo.getContainerPort());
+                    session.setAttribute("level", 0);
 
-        return ResponseEntity.ok(Map.of("endDate", maxAge));
+                    return ResponseEntity.ok(Map.of("endDate", maxAge));
+                });
     }
 
     @DeleteMapping(value="release")
-    public void releaseUserSession(final HttpServletRequest httpRequest) {
+    public Mono<Void> releaseUserSession(final HttpServletRequest httpRequest) {
         final HttpSession session = httpRequest.getSession();
-        // 이렇게 Object객체를 String으로 강제 형변환 하는게 좋은 방법인지 알아보기
-        this.sandboxService.releaseUserSession(Objects.toString(session.getAttribute("containerId"), null));
-        session.invalidate();
+        return Mono.justOrEmpty(session.getAttribute("containerId"))
+                .map(Objects::toString)
+                .flatMap(this.sandboxService::releaseUserSession)
+                .then(Mono.fromRunnable(session::invalidate));
     }
 
     @GetMapping(value="hostStatus")
-    public String getHostStatus(final HttpServletRequest httpRequest) {
+    public Mono<ResponseEntity<String>> getHostStatus(final HttpServletRequest httpRequest) {
         final HttpSession session = httpRequest.getSession();
-        final int containerPort = Integer.parseInt(Objects.toString(session.getAttribute("containerPort")));
-        return this.sandboxService.getHostStatus(containerPort);
+        return Mono.justOrEmpty(session.getAttribute("containerPort"))
+                .map(containerPort ->
+                    Integer.parseInt(Objects.toString(containerPort, "0")))
+                .flatMap(this.sandboxService::getHostStatus)
+                .map(ResponseEntity::ok);
     }
 
     @GetMapping(value="elements")
-    public ResponseEntity<Elements> getUserContainerImages(HttpServletRequest httpServletRequest) {
+    public Mono<ResponseEntity<Elements>> getUserContainerImages(HttpServletRequest httpServletRequest) {
             final HttpSession session = httpServletRequest.getSession();
-            final int containerPort = Integer.parseInt(Objects.toString(session.getAttribute("containerPort")));
-            final Elements elements = this.sandboxService.getUserContainersImages(containerPort);
-            return ResponseEntity.ok(elements);
+            return Mono.justOrEmpty(session.getAttribute("containerPort"))
+                    .map(Objects::toString)
+                    .map(Integer::parseInt)
+                    .flatMap(this.sandboxService::getUserContainersImages)
+                    .map(ResponseEntity::ok);
     }
 
 }

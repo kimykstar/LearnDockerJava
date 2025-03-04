@@ -1,8 +1,10 @@
 package com.LearnDocker.LearnDocker;
 
-import org.springframework.http.HttpStatusCode;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.ErrorResponseException;
+
+import java.util.Optional;
 
 @Service
 public class QuizService {
@@ -12,15 +14,14 @@ public class QuizService {
         this.quizRepository = quizRepository;
     }
 
-    public String getQuizById(int quizId) {
-        String quiz = this.quizRepository.findById(quizId).toString();
-        System.out.println(quiz);
-        return this.quizRepository.findById(quizId).toString();
+    public Quiz getQuizById(int quizId) {
+        Optional<Quiz> optionalQuiz = this.quizRepository.findById(quizId);
+        return optionalQuiz.orElse(null);
     }
 
     public void accessQuiz(int quizId, int level) {
         if (quizId < level) {
-            throw new ErrorResponseException(HttpStatusCode.valueOf(400));
+            throw new ErrorResponseException(HttpStatus.BAD_REQUEST);
         }
     }
 }

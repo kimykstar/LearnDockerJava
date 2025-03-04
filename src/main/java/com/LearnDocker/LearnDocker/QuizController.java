@@ -2,6 +2,7 @@ package com.LearnDocker.LearnDocker;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,8 +20,9 @@ public class QuizController {
     }
     
     @GetMapping(value="/{quizId}")
-    public String getQuizById(@PathVariable(value="quizId") int quizId) {
-        return this.quizService.getQuizById(quizId);
+    public ResponseEntity<Quiz> getQuizById(@PathVariable(value="quizId") int quizId) {
+        Quiz quiz = this.quizService.getQuizById(quizId);
+        return ResponseEntity.ok(quiz);
     }
 
     @GetMapping(value="/{quizId}/access")
