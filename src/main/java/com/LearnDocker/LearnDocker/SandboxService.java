@@ -101,19 +101,15 @@ public class SandboxService {
                 .then();
     }
 
-    public String getHostStatus(int containerPort) {
-        // Todo: 상태 코드 예외 잡기
-        this.containerWebClient.build()
+    public Mono<String> getHostStatus(int containerPort) {
+        return this.containerWebClient.build()
                 .get()
                 .uri(uriBuilder -> uriBuilder.port(containerPort).path("/_ping").build())
                 .retrieve()
                 .onStatus(HttpStatus.INTERNAL_SERVER_ERROR::equals, clientResponse -> Mono.just(new Exception()))
                 .bodyToMono(String.class)
-                .onErrorResume(e -> {
-                    return Mono.just(STARTING);
-                }).block();
-
-        return READY;
+                .map(response -> READY)
+                .onErrorResume(e -> Mono.just(STARTING));
     }
 
     public Elements getUserContainersImages(int containerPort) {

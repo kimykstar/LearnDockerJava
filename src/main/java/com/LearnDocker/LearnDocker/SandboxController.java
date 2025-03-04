@@ -47,10 +47,13 @@ public class SandboxController {
     }
 
     @GetMapping(value="hostStatus")
-    public String getHostStatus(final HttpServletRequest httpRequest) {
+    public Mono<ResponseEntity<String>> getHostStatus(final HttpServletRequest httpRequest) {
         final HttpSession session = httpRequest.getSession();
-        final int containerPort = Integer.parseInt(Objects.toString(session.getAttribute("containerPort")));
-        return this.sandboxService.getHostStatus(containerPort);
+        return Mono.justOrEmpty(session.getAttribute("containerPort"))
+                .map(containerPort ->
+                    Integer.parseInt(Objects.toString(containerPort, "0")))
+                .flatMap(this.sandboxService::getHostStatus)
+                .map(ResponseEntity::ok);
     }
 
     @GetMapping(value="elements")
