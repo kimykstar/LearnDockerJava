@@ -112,27 +112,27 @@ public class SandboxService {
                 .onErrorResume(e -> Mono.just(STARTING));
     }
 
-    public Elements getUserContainersImages(int containerPort) {
-        String responseImages = this.containerWebClient.build()
+    public Mono<Elements> getUserContainersImages(int containerPort) {
+        Mono<String> imagesMono = this.containerWebClient.build()
                 .get()
                 .uri(uriBuilder -> uriBuilder.port(containerPort).path("/images/json").build())
                 .retrieve()
-                .bodyToMono(String.class)
-                .block();
-        Elements.Image[] images = parseImages(responseImages);
+                .bodyToMono(String.class);
 
-        String responseContainers = this.containerWebClient.build()
-                .get()
-                .uri(uriBuilder -> uriBuilder
-                        .port(containerPort)
-                        .path("/containers/json")
-                        .queryParam("all", "true").build())
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-        Elements.Container[] containers = parseContainers(responseContainers);
-        
-        return new Elements(images, containers);
+        return imagesMono.map(this::parseImages)
+                .flatMap(images ->
+                    this.containerWebClient.build()
+                            .get()
+                            .uri(uriBuilder -> uriBuilder
+                                    .port(containerPort)
+                                    .path("/containers/json")
+                                    .queryParam("all", "true")
+                                    .build())
+                            .retrieve()
+                            .bodyToMono(String.class)
+                            .map(this::parseContainers)
+                            .map(containers -> new Elements(images, containers))
+                );
     }
 
     // Todo: 아래 파싱 함수들 리팩토링 하기, 예외 처리

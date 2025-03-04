@@ -57,11 +57,13 @@ public class SandboxController {
     }
 
     @GetMapping(value="elements")
-    public ResponseEntity<Elements> getUserContainerImages(HttpServletRequest httpServletRequest) {
+    public Mono<ResponseEntity<Elements>> getUserContainerImages(HttpServletRequest httpServletRequest) {
             final HttpSession session = httpServletRequest.getSession();
-            final int containerPort = Integer.parseInt(Objects.toString(session.getAttribute("containerPort")));
-            final Elements elements = this.sandboxService.getUserContainersImages(containerPort);
-            return ResponseEntity.ok(elements);
+            return Mono.justOrEmpty(session.getAttribute("containerPort"))
+                    .map(Objects::toString)
+                    .map(Integer::parseInt)
+                    .flatMap(this.sandboxService::getUserContainersImages)
+                    .map(ResponseEntity::ok);
     }
 
 }
