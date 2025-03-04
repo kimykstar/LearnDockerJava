@@ -52,7 +52,7 @@ public class SandboxService {
         );
         return this.dockerWebClient.build()
                 .post()
-                .uri("/containers/create")
+                .uri(uriBuilder -> uriBuilder.path("/containers/create").build())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .retrieve()
@@ -64,7 +64,7 @@ public class SandboxService {
         // Start Container
         return this.dockerWebClient.build()
                 .post()
-                .uri("/containers/" + containerId + "/start")
+                .uri(uriBuilder -> uriBuilder.path("/containers/{containerId}/start").build(containerId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .toBodilessEntity()
@@ -74,7 +74,7 @@ public class SandboxService {
     public Mono<String> getContainerPort(String containerId) {
         return this.dockerWebClient.build()
                 .get()
-                .uri("containers/" + containerId + "/json")
+                .uri(uriBuilder -> uriBuilder.path("containers/{containerId}/json").build(containerId))
                 .retrieve()
                 .bodyToMono(String.class)
                 .flatMap(data -> {
@@ -95,7 +95,7 @@ public class SandboxService {
     public Mono<Void> releaseUserSession(String containerId) {
         return this.dockerWebClient.build()
                 .delete()
-                .uri("containers/" + containerId + "?force=true&v=true")
+                .uri(uriBuilder -> uriBuilder.path("containers/{containerId}").queryParam("force", "true").queryParam("v", "true").build(containerId))
                 .retrieve()
                 .toBodilessEntity()
                 .then();
