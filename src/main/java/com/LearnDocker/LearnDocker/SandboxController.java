@@ -38,9 +38,9 @@ public class SandboxController {
     }
 
     @DeleteMapping(value="release")
-    public void releaseUserSession(final HttpServletRequest httpRequest) {
+    public Mono<Void> releaseUserSession(final HttpServletRequest httpRequest) {
         final HttpSession session = httpRequest.getSession();
-        Mono.justOrEmpty(session.getAttribute("containerId"))
+        return Mono.justOrEmpty(session.getAttribute("containerId"))
                 .map(Objects::toString)
                 .flatMap(this.sandboxService::releaseUserSession)
                 .then(Mono.fromRunnable(session::invalidate));
