@@ -2,30 +2,19 @@ package com.LearnDocker.LearnDocker;
 
 import com.LearnDocker.LearnDocker.DTO.ContainerInfo;
 import com.LearnDocker.LearnDocker.DTO.Elements;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class SandboxService {
-    private static final String READY = "READY";
-    private static final String STARTING = "STARTING";
     private final DockerAPI dockerAPI;
+    private final CreateContainerBody newContainerBody;
 
     @Autowired
-    public SandboxService(DockerAPI dockerAPI) {
+    public SandboxService(DockerAPI dockerAPI, CreateContainerBody containerBody) {
         this.dockerAPI = dockerAPI;
+        this.newContainerBody = containerBody;
     }
 
     public Mono<ContainerInfo> assignUserContainer() {
@@ -39,20 +28,10 @@ public class SandboxService {
 
 
     public Mono<String> createUserContainer() {
-        CreateContainerBody body = new CreateContainerBody(
-                "dind",
-                new CreateContainerBody.HostConfig(
-                        true,
-                        Map.of("2375/tcp", List.of(new CreateContainerBody.PortBinding("0", "0.0.0.0")))
-                ),
-                List.of("DOCKER_TLS_CERTDIR="),
-                List.of("--tls=false")
-        );
-        return this.dockerAPI.createUserContainerAPI(body);
+        return this.dockerAPI.createUserContainerAPI(newContainerBody);
     }
 
     public Mono<Void> startUserContainer(String containerId) {
-        // Start Container
         return this.dockerAPI.startUserContainerAPI(containerId);
     }
 
