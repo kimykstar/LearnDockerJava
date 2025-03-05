@@ -18,25 +18,12 @@ public class SandboxService {
     }
 
     public Mono<ContainerInfo> assignUserContainer() {
-        return createUserContainer()
+        return this.dockerAPI.createUserContainerAPI(newContainerBody)
                 .flatMap(containerId ->
-                        startUserContainer(containerId)
-                                .then(getContainerPort(containerId)
+                        this.dockerAPI.startUserContainerAPI(containerId)
+                                .then(this.dockerAPI.getContainerPortAPI(containerId)
                                         .map(containerPort -> new ContainerInfo(containerId, containerPort)))
                 );
-    }
-
-
-    public Mono<String> createUserContainer() {
-        return this.dockerAPI.createUserContainerAPI(newContainerBody);
-    }
-
-    public Mono<Void> startUserContainer(String containerId) {
-        return this.dockerAPI.startUserContainerAPI(containerId);
-    }
-
-    public Mono<String> getContainerPort(String containerId) {
-        return this.dockerAPI.getContainerPortAPI(containerId);
     }
 
     public Mono<Void> releaseUserSession(String containerId) {
