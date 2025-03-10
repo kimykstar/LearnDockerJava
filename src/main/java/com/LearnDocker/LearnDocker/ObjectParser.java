@@ -63,4 +63,14 @@ public class ObjectParser {
         }
         return null;
     }
+
+    public String parseCreationExecResponseBody(String creationExecResponseBody) {
+        try {
+            JsonNode json = this.objectMapper.readTree(creationExecResponseBody);
+            return json.get("Id").asText();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

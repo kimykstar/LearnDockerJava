@@ -1,8 +1,8 @@
 package com.LearnDocker.LearnDocker;
 
 import com.LearnDocker.LearnDocker.DTO.Elements;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.LearnDocker.LearnDocker.DTO.ExecCreate;
+import com.LearnDocker.LearnDocker.DTO.ExecStart;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
@@ -17,21 +17,21 @@ import java.util.Map;
 @Component
 public class DockerAPI {
 
-    private final WebClient.Builder dockerWebClient;
-    private final WebClient.Builder containerWebClient;
+    private final WebClient dockerWebClient;
+    private final WebClient containerWebClient;
     private final ObjectParser objectParser;
     private static final String STARTING = "STARTING";
     private static final String READY = "READY";
 
     @Autowired
     public DockerAPI(@Qualifier("DockerWebClient") WebClient dockerWebClient, @Qualifier("ContainerWebClient") WebClient containerWebClient, ObjectParser objectParser) {
-        this.dockerWebClient = dockerWebClient.mutate();
-        this.containerWebClient = containerWebClient.mutate();
+        this.dockerWebClient = dockerWebClient;
+        this.containerWebClient = containerWebClient;
         this.objectParser = objectParser;
     }
 
     public Mono<String> createUserContainerAPI(CreateContainerBody body) {
-        return this.dockerWebClient.build()
+        return this.dockerWebClient
                 .post()
                 .uri(uriBuilder -> uriBuilder.path("/containers/create").build())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -42,7 +42,7 @@ public class DockerAPI {
     }
 
     public Mono<Void> startUserContainerAPI(String containerId) {
-        return this.dockerWebClient.build()
+        return this.dockerWebClient
                 .post()
                 .uri(uriBuilder -> uriBuilder.path("/containers/{containerId}/start").build(containerId))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -52,7 +52,7 @@ public class DockerAPI {
     }
 
     public Mono<String> getContainerPortAPI(String containerId) {
-        return this.dockerWebClient.build()
+        return this.dockerWebClient
                 .get()
                 .uri(uriBuilder -> uriBuilder.path("containers/{containerId}/json").build(containerId))
                 .retrieve()
@@ -61,7 +61,7 @@ public class DockerAPI {
     }
 
     public Mono<Void> releaseUserSessionAPI(String containerId) {
-        return this.dockerWebClient.build()
+        return this.dockerWebClient
                 .delete()
                 .uri(uriBuilder -> uriBuilder.path("containers/{containerId}").queryParam("force", "true").queryParam("v", "true").build(containerId))
                 .retrieve()
@@ -70,7 +70,7 @@ public class DockerAPI {
     }
 
     public Mono<String> getHostStatusAPI(int containerPort) {
-        return this.containerWebClient.build()
+        return this.containerWebClient
                 .get()
                 .uri(uriBuilder -> uriBuilder.port(containerPort).path("/_ping").build())
                 .retrieve()
@@ -81,7 +81,7 @@ public class DockerAPI {
     }
 
     public Mono<Elements.Image[]> getUserImagesAPI(int containerPort) {
-        return this.containerWebClient.build()
+        return this.containerWebClient
                 .get()
                 .uri(uriBuilder -> uriBuilder.port(containerPort).path("/images/json").build())
                 .retrieve()
@@ -90,7 +90,7 @@ public class DockerAPI {
     }
 
     public Mono<Elements.Container[]> getContainersAPI(int containerPort) {
-        return this.containerWebClient.build()
+        return this.containerWebClient
                 .get()
                 .uri(uriBuilder -> uriBuilder
                         .port(containerPort)
@@ -100,5 +100,28 @@ public class DockerAPI {
                 .retrieve()
                 .bodyToMono(String.class)
                 .map(this.objectParser::parseContainers);
+    }
+
+    public Mono<String> requestDockerCommand(String containerId, String[] command) {
+        ExecCreate creationBody = new ExecCreate(false, true, true, true, command);
+        String execId = this.dockerWebClient
+                .post()
+                .uri(uriBuilder -> uriBuilder.path("/containers/{containerId}/exec").build(containerId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(creationBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .map(this.objectParser::parseCreationExecResponseBody)
+                .block();
+        ExecStart startBody = new ExecStart(false, true);
+        return this.dockerWebClient
+                .post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/exec/{execId}/start")
+                        .build(execId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(startBody)
+                .retrieve()
+                .bodyToMono(String.class);
     }
 }
