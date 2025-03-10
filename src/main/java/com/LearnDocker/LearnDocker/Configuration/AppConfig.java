@@ -13,12 +13,16 @@ import java.util.Map;
 public class AppConfig {
     @Bean(name="DockerWebClient")
     public WebClient getWebClient() {
-        return WebClient.create("http://localhost:2375");
+        return WebClient.builder()
+                .baseUrl("http://localhost:2375")
+                .build();
     }
 
     @Bean(name="ContainerWebClient")
     public WebClient getContainerWebClient() {
-        return WebClient.create("http://localhost");
+        return WebClient.builder()
+                .baseUrl("http://localhost")
+                .build();
     }
 
     @Bean
