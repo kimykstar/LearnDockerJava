@@ -1,6 +1,6 @@
 package com.LearnDocker.LearnDocker;
 
-import com.LearnDocker.LearnDocker.DTO.ContainerInfo;
+import com.LearnDocker.LearnDocker.DTO.Command;
 import com.LearnDocker.LearnDocker.DTO.Elements;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -64,6 +64,21 @@ public class SandboxController {
                     .map(Integer::parseInt)
                     .flatMap(this.sandboxService::getUserContainersImages)
                     .map(ResponseEntity::ok);
+    }
+
+    @PostMapping("command")
+    public Mono<ResponseEntity<String>> processUserCommand(HttpServletRequest httpServletRequest, @RequestBody Command body) {
+        try {
+            String command = CommandValidator.getValidCommand(body.getCommand());
+            String containerId = Objects.toString(httpServletRequest.getSession().getAttribute("containerId"));
+            return sandboxService.processUserCommand(command, containerId)
+                    .map(ResponseEntity::ok);
+        } catch (Exception e) {
+            // 예외처리
+            System.out.println();
+        }
+        // TODO: 예외 처리
+        return null;
     }
 
 }
