@@ -37,6 +37,7 @@ public class AppConfig {
                 new CreateContainerBody.HostConfig(
                         true,
                         Map.of("2375/tcp", List.of(new CreateContainerBody.PortBinding("0", "0.0.0.0")))
+                        , List.of("learndocker.io:172.17.0.1")
                 ),
                 List.of("DOCKER_TLS_CERTDIR="),
                 List.of("--tls=false")
