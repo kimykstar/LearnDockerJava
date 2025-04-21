@@ -3,7 +3,6 @@ package com.LearnDocker.LearnDocker.Service;
 import com.LearnDocker.LearnDocker.DTO.Elements;
 import com.LearnDocker.LearnDocker.DockerAPI;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +11,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.Collection;
-
 import static org.mockito.Mockito.when;
-
 
 @SpringBootTest
 class QuizServiceTest {
@@ -104,13 +100,7 @@ class QuizServiceTest {
     @DisplayName("컨테이너 실행 채점 테스트")
     public void GradeQuiz5Test() {
         int level = 5;
-        String userAnswer = "부스트캠프 웹보바일 9기 화이팅!";
-        when(this.dockerAPI.getContainersAPI(TEST_CONTAINER_PORT)).thenReturn(
-                Mono.just(new Elements.Container[]{
-                        new Elements.Container("aa86eacfb3b3ed4cd362c1e88fc89a53908ad05fb3a4103bca3f9b28292d14bf",
-                                "Test Name", "created", "learndocker.io/hello-world")
-                })
-        );
+        String userAnswer = "부스트캠프 웹모바일 9기 화이팅!";
 
         Mono<String> result = this.quizService.gradeQuiz5(SESSION_ID, userAnswer, level);
 
