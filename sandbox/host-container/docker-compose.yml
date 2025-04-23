@@ -1,0 +1,14 @@
+services:
+  dind:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dind
+    privileged: true
+    ports:
+      - "0:2375"
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    extra_hosts:
+      - "learndocker.io:172.17.0.1"
+    network_mode: "bridge"

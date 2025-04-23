@@ -1,5 +1,7 @@
-package com.LearnDocker.LearnDocker;
+package com.LearnDocker.LearnDocker.Controller;
 
+import com.LearnDocker.LearnDocker.DTO.Quiz;
+import com.LearnDocker.LearnDocker.Service.QuizService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;

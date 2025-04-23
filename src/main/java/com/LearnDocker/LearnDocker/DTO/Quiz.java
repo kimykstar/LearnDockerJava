@@ -1,4 +1,4 @@
-package com.LearnDocker.LearnDocker;
+package com.LearnDocker.LearnDocker.DTO;
 
 import jakarta.persistence.*;
 import lombok.Getter;

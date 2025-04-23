@@ -1,0 +1,9 @@
+services:
+  registry:
+    image: registry:2
+    ports:
+      - "80:80"
+    environment:
+      REGISTRY_HTTP_ADDR: 0.0.0.0:80
+    restart: always
+    network_mode: "bridge"

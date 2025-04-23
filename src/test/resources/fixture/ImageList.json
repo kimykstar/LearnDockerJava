@@ -1,0 +1,17 @@
+[
+  {
+    "Containers": -1,
+    "Created": 1734261636,
+    "Id": "sha256:1edcbfcd2806e4acf851dd62791d360eb97a757e07944a7395bd796ecba06ef7",
+    "Labels": null,
+    "ParentId": "",
+    "RepoDigests": [
+      "learndocker.io/hello-world@sha256:5be9692a5ff7754d8cfb74ad96800cc8a5ca366f1c6a8932976192a4c2365b4f"
+    ],
+    "RepoTags": [
+      "learndocker.io/hello-world:latest"
+    ],
+    "SharedSize": -1,
+    "Size": 25968
+  }
+]
