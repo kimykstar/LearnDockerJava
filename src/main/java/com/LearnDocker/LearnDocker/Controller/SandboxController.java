@@ -4,12 +4,10 @@ import com.LearnDocker.LearnDocker.CommandValidator;
 import com.LearnDocker.LearnDocker.DTO.Command;
 import com.LearnDocker.LearnDocker.DTO.Elements;
 import com.LearnDocker.LearnDocker.Service.SandboxService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-
 import java.util.Map;
 import java.util.Objects;
 
@@ -23,57 +21,68 @@ public class SandboxController {
     }
 
     @PostMapping(value="start")
-    public Mono<ResponseEntity<Map<String, Long>>> userContainerStart(final HttpServletRequest httpRequest) {
-        final HttpSession session = httpRequest.getSession();
-        final long creationTime = session.getCreationTime();
-        final long expirationTime = session.getMaxInactiveInterval() * 1000L;
-        final long maxAge = creationTime + expirationTime;
+    public Mono<ResponseEntity<Map<String, Long>>> userContainerStart(final ServerWebExchange request) {
+        return request.getSession()
+                .flatMap(session -> {
+                    long startTime = session.getCreationTime().toEpochMilli();
+                    long expirationTime = 4 * 3600 * 1000;
+                    long maxAge = expirationTime + startTime;
 
-        return this.sandboxService.assignUserContainer()
-                .map(containerInfo -> {
-                    session.setAttribute("containerId", containerInfo.getContainerId());
-                    session.setAttribute("containerPort", containerInfo.getContainerPort());
-                    session.setAttribute("level", 0);
+                    return this.sandboxService.assignUserContainer()
+                            .flatMap(containerInfo -> {
+                                session.getAttributes().put("containerId", containerInfo.getContainerId());
+                                session.getAttributes().put("containerPort", containerInfo.getContainerPort());
+                                session.getAttributes().put("level", 0);
 
-                    return ResponseEntity.ok(Map.of("endDate", maxAge));
+                                return session.save().thenReturn(
+                                        ResponseEntity.ok(Map.of("endDate", maxAge))
+                                );
+                            });
                 });
     }
 
-    @DeleteMapping(value="release")
-    public Mono<Void> releaseUserSession(final HttpServletRequest httpRequest) {
-        final HttpSession session = httpRequest.getSession();
-        return Mono.justOrEmpty(session.getAttribute("containerId"))
-                .map(Objects::toString)
-                .flatMap(this.sandboxService::releaseUserSession)
-                .then(Mono.fromRunnable(session::invalidate));
+    @DeleteMapping("release")
+    public Mono<Void> releaseUserSession(final ServerWebExchange request) {
+        return request.getSession()
+                .flatMap(session -> {
+                    String containerId = Objects.toString(session.getAttribute("containerId"), null);
+                    return this.sandboxService.releaseUserSession(containerId)
+                            .then(session.invalidate());
+                });
     }
 
+
     @GetMapping(value="hostStatus")
-    public Mono<ResponseEntity<String>> getHostStatus(final HttpServletRequest httpRequest) {
-        final HttpSession session = httpRequest.getSession();
-        return Mono.justOrEmpty(session.getAttribute("containerPort"))
-                .map(containerPort ->
-                    Integer.parseInt(Objects.toString(containerPort, "0")))
-                .flatMap(this.sandboxService::getHostStatus)
+    public Mono<ResponseEntity<String>> getHostStatus(final ServerWebExchange request) {
+        return request.getSession()
+                .flatMap(session -> {
+                    int containerPort = Integer.parseInt(Objects.toString(session.getAttribute("containerPort"), "0"));
+                    return this.sandboxService.getHostStatus(containerPort);
+                })
                 .map(ResponseEntity::ok);
     }
 
     @GetMapping(value="elements")
-    public Mono<ResponseEntity<Elements>> getUserContainerImages(HttpServletRequest httpServletRequest) {
-            final HttpSession session = httpServletRequest.getSession();
-            return Mono.justOrEmpty(session.getAttribute("containerPort"))
-                    .map(Objects::toString)
-                    .map(Integer::parseInt)
-                    .flatMap(this.sandboxService::getUserContainersImages)
+    public Mono<ResponseEntity<Elements>> getUserContainerImages(ServerWebExchange request) {
+
+            return request.getSession()
+                    .flatMap(session -> {
+                        int containerPort = Integer.parseInt(Objects.toString(session.getAttribute("containerPort"), "0"));
+                        return this.sandboxService.getUserContainersImages(containerPort);
+                    })
                     .map(ResponseEntity::ok);
     }
 
     @PostMapping("command")
-    public Mono<ResponseEntity<String>> processUserCommand(HttpServletRequest httpServletRequest, @RequestBody Command body) {
+    public Mono<ResponseEntity<String>> processUserCommand(ServerWebExchange request, @RequestBody Command body) {
         try {
             String command = CommandValidator.getValidCommand(body.getCommand());
-            String containerId = Objects.toString(httpServletRequest.getSession().getAttribute("containerId"));
-            return sandboxService.processUserCommand(command, containerId)
+
+            return request.getSession()
+                    .flatMap(session -> {
+                        String containerId = Objects.toString(session.getAttribute("containerId"));
+                        return this.sandboxService.processUserCommand(command, containerId);
+                    })
                     .map(ResponseEntity::ok);
         } catch (Exception e) {
             // 예외처리
