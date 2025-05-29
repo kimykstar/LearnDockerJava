@@ -2,6 +2,7 @@ package com.LearnDocker.LearnDocker.Service;
 
 import com.LearnDocker.LearnDocker.DTO.Quiz;
 import com.LearnDocker.LearnDocker.DockerAPI;
+import com.LearnDocker.LearnDocker.Exception.BadQuizIdException;
 import com.LearnDocker.LearnDocker.Repository.QuizRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,31 @@ public class QuizService {
         }
     }
 
+    public Mono<String> grade(int quizId, int containerPort, String userAnswer) throws BadQuizIdException {
+        switch (quizId) {
+            case 1:
+                return gradeQuiz1(containerPort);
+            case 2:
+                return gradeQuiz2(containerPort, userAnswer);
+            case 3:
+                return gradeQuiz3(containerPort);
+            case 4:
+                return gradeQuiz4(containerPort);
+            case 5:
+                return gradeQuiz5(userAnswer);
+            case 6:
+                return gradeQuiz6(containerPort);
+            case 7:
+                return gradeQuiz7(userAnswer);
+            case 8:
+                return gradeQuiz8(containerPort, userAnswer);
+            case 9:
+                return gradeQuiz9(containerPort);
+            case 10:
+                return gradeQuiz10(containerPort);
+        }
+        throw new BadQuizIdException();
+    }
 
     public Mono<String> gradeQuiz1(int containerPort) {
         return this.dockerAPI.getUserImagesAPI(containerPort)
@@ -77,9 +103,11 @@ public class QuizService {
         String answerContainerName = "learndocker.io/hello-world";
         return this.dockerAPI.getContainersAPI(containerPort)
                 .flatMapMany(Flux::fromArray)
-                .filter(container ->
-                    (container.getImage() == answerContainerName)
-                ).next()
+                .filter(container ->{
+                    System.out.println("RRRR" + container.getImage());
+                    return container.getImage().equals(answerContainerName);
+                })
+                .next()
                 .map(container -> SUCCESS)
                 .switchIfEmpty(Mono.just(FAIL));
     }
