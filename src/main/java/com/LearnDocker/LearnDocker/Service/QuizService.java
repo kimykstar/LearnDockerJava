@@ -2,6 +2,7 @@ package com.LearnDocker.LearnDocker.Service;
 
 import com.LearnDocker.LearnDocker.DTO.Quiz;
 import com.LearnDocker.LearnDocker.DockerAPI;
+import com.LearnDocker.LearnDocker.Exception.BadQuizIdException;
 import com.LearnDocker.LearnDocker.Repository.QuizRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,33 @@ public class QuizService {
         }
     }
 
-    public Mono<String> gradeQuiz1(String sessionId, int containerPort, int level) {
+    public Mono<String> grade(int quizId, int containerPort, String userAnswer) throws BadQuizIdException {
+        switch (quizId) {
+            case 1:
+                return gradeQuiz1(containerPort);
+            case 2:
+                return gradeQuiz2(containerPort, userAnswer);
+            case 3:
+                return gradeQuiz3(containerPort);
+            case 4:
+                return gradeQuiz4(containerPort);
+            case 5:
+                return gradeQuiz5(userAnswer);
+            case 6:
+                return gradeQuiz6(containerPort);
+            case 7:
+                return gradeQuiz7(userAnswer);
+            case 8:
+                return gradeQuiz8(containerPort, userAnswer);
+            case 9:
+                return gradeQuiz9(containerPort);
+            case 10:
+                return gradeQuiz10(containerPort);
+        }
+        throw new BadQuizIdException();
+    }
+
+    public Mono<String> gradeQuiz1(int containerPort) {
         return this.dockerAPI.getUserImagesAPI(containerPort)
                 .flatMapMany(Flux::fromArray)
                 .filter(image ->  image.getName().contains("learndocker.io/hello-world"))
@@ -43,7 +70,7 @@ public class QuizService {
                 .switchIfEmpty(Mono.just(FAIL));
     }
 
-    public Mono<String> gradeQuiz2(String sessionId, int containerPort, String userAnswer, int level) {
+    public Mono<String> gradeQuiz2(int containerPort, String userAnswer) {
         return this.dockerAPI.getUserImagesAPI(containerPort)
                 .flatMapMany(Flux::fromArray)
                 .filter(image -> {
@@ -60,7 +87,7 @@ public class QuizService {
                 .switchIfEmpty(Mono.just(FAIL));
     }
 
-    public Mono<String> gradeQuiz3(String sessionId, int containerPort, int level) {
+    public Mono<String> gradeQuiz3(int containerPort) {
         return this.dockerAPI.getUserImagesAPI(containerPort)
                 .flatMapMany(Flux::fromArray)
                 .filter(image -> {
@@ -72,24 +99,26 @@ public class QuizService {
                 .switchIfEmpty(Mono.just(SUCCESS));
     }
 
-    public Mono<String> gradeQuiz4(String sessionId, int containerPort, int level) {
+    public Mono<String> gradeQuiz4(int containerPort) {
         String answerContainerName = "learndocker.io/hello-world";
         return this.dockerAPI.getContainersAPI(containerPort)
                 .flatMapMany(Flux::fromArray)
-                .filter(container ->
-                    (container.getImage() == answerContainerName)
-                ).next()
+                .filter(container ->{
+                    System.out.println("RRRR" + container.getImage());
+                    return container.getImage().equals(answerContainerName);
+                })
+                .next()
                 .map(container -> SUCCESS)
                 .switchIfEmpty(Mono.just(FAIL));
     }
 
-    public Mono<String> gradeQuiz5(String sessionId, String userAnswer, int level) {
+    public Mono<String> gradeQuiz5(String userAnswer) {
         String answer = "부스트캠프 웹모바일 9기 화이팅!";
 
         return (answer.equals(userAnswer)) ? Mono.just(SUCCESS) : Mono.just(FAIL);
     }
 
-    public Mono<String> gradeQuiz6(String sessionId, int containerPort, int level) {
+    public Mono<String> gradeQuiz6(int containerPort) {
         String containerName = "learndocker.io/joke";
         String containerStatus = "running";
 
@@ -101,13 +130,13 @@ public class QuizService {
                 .switchIfEmpty(Mono.just(FAIL));
     }
 
-    public Mono<String> gradeQuiz7(String sessionId, String userAnswer, int level) {
+    public Mono<String> gradeQuiz7(String userAnswer) {
         String answer = "스페이스바";
 
         return (userAnswer.equals(answer)) ? Mono.just(SUCCESS) : Mono.just(FAIL);
     }
 
-    public Mono<String> gradeQuiz8(String sessionId, int containerPort, String userAnswer, int level) {
+    public Mono<String> gradeQuiz8(int containerPort, String userAnswer) {
         return this.dockerAPI.getContainersAPI(containerPort)
                 .flatMapMany(Flux::fromArray)
                 .filter(container -> {
@@ -118,7 +147,7 @@ public class QuizService {
                 .switchIfEmpty(Mono.just(FAIL));
     }
 
-    public Mono<String> gradeQuiz9(String sessionId, int containerPort, int level) {
+    public Mono<String> gradeQuiz9(int containerPort) {
         String answerContainerName = "learndocker.io/joke";
         String answerStatus = "exited";
 
@@ -132,7 +161,7 @@ public class QuizService {
                 .switchIfEmpty(Mono.just(FAIL));
     }
 
-    public Mono<String> gradeQuiz10(String sessionId, int containerPort, int level) {
+    public Mono<String> gradeQuiz10(int containerPort) {
         return this.dockerAPI.getContainersAPI(containerPort)
                 .filter(containers -> (containers.length > 0) ? false : true)
                 .map(containers -> SUCCESS)

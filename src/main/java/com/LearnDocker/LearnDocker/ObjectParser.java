@@ -53,9 +53,9 @@ public class ObjectParser {
             for (JsonNode containerNode : rootArray) {
                 String id = containerNode.get("Id").asText();
                 String name = containerNode.get("Names").get(0).asText().split("/")[1];
-                String image = containerNode.get("Image").asText();
                 String status = containerNode.get("State").asText();
-                containerList.add(new Elements.Container(id, name, image, status));
+                String image = containerNode.get("Image").asText();
+                containerList.add(new Elements.Container(id, name, status, image));
             }
             return containerList.toArray(new Elements.Container[0]);
         } catch (Exception e) {
