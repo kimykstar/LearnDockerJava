@@ -61,6 +61,7 @@ Play with Docker는 안전한 환경을 제공하지만 체계적인 학습 커�
 - 공유 저장소(Redis)를 활용한 세션 테이블 저장 및 관리를 통한 확장성 향상
 
 ## SandBox Server(Docker Server) 병렬 구축 및 LoadBalancer구축
+![image](https://github.com/user-attachments/assets/04c2270a-f500-4211-8a46-4fd9268423a2)
 
 ### 도전 계기
 순간적인 다수의 트래픽 발생 시 SandBox Server(Docker Server)의 처리 속도 감소 및 서버 중단 문제 발생
@@ -79,4 +80,4 @@ Play with Docker는 안전한 환경을 제공하지만 체계적인 학습 커�
 
 # 🏗️ 아키텍처 설계
 
-![image](https://github.com/user-attachments/assets/b27da6aa-9b36-4464-ba00-364606008334)
+![image](https://github.com/user-attachments/assets/04c2270a-f500-4211-8a46-4fd9268423a2)
